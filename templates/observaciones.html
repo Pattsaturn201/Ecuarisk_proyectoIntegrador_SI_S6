@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Observaciones{% endblock %}
+
+{% block content %}
+<h2>Observaciones y Recomendaciones</h2>
+
+<form method="POST">
+    <input name="riesgo_id" placeholder="ID del Riesgo" required>
+
+    <select name="tipo">
+        <option>Observacion</option>
+        <option>Recomendacion</option>
+        <option>Auditoria</option>
+    </select>
+
+    <textarea name="comentario" placeholder="Comentario" required></textarea>
+    <input name="autor" placeholder="Autor" required>
+
+    <button type="submit">Registrar</button>
+</form>
+
+<hr>
+
+<h3>Listado</h3>
+<ul>
+{% for o in observaciones %}
+    <li>{{ o.tipo }} – {{ o.comentario }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

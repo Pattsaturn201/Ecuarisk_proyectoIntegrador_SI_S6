@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Tratamientos{% endblock %}
+
+{% block content %}
+<h2>Tratamiento de Riesgos</h2>
+
+<form method="POST">
+    <input name="riesgo_id" placeholder="ID del Riesgo" required>
+
+    <select name="estrategia">
+        <option>Mitigar</option>
+        <option>Aceptar</option>
+        <option>Transferir</option>
+        <option>Evitar</option>
+    </select>
+
+    <input name="responsable" placeholder="Responsable" required>
+    <textarea name="observaciones" placeholder="Observaciones"></textarea>
+
+    <button type="submit">Guardar Tratamiento</button>
+</form>
+
+<hr>
+
+<h3>Tratamientos</h3>
+<ul>
+{% for t in tratamientos %}
+    <li>{{ t.estrategia }} – {{ t.estado }} – {{ t.responsable }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Riesgos{% endblock %}
+
+{% block content %}
+<h2>Identificación de Riesgos</h2>
+
+<form method="POST">
+    <input name="activo_id" placeholder="ID del Activo" required>
+    <input name="amenaza" placeholder="Amenaza" required>
+    <input name="vulnerabilidad" placeholder="Vulnerabilidad" required>
+
+    <input type="number" name="impacto" min="1" max="4" placeholder="Impacto" required>
+    <input type="number" name="probabilidad" min="1" max="4" placeholder="Probabilidad" required>
+
+    <button type="submit">Registrar Riesgo</button>
+</form>
+
+<hr>
+
+<h3>Riesgos Registrados</h3>
+<ul>
+{% for r in riesgos %}
+    <li>{{ r.amenaza }} – Nivel: {{ r.nivel }} ({{ r.clasificacion }})</li>
+{% endfor %}
+</ul>
+{% endblock %}

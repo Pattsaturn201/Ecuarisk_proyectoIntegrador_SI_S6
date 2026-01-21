@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Activos{% endblock %}
+
+{% block content %}
+<h2>Registro de Activos</h2>
+
+<form method="POST">
+    <input name="nombre" placeholder="Nombre del activo" required>
+    <select name="tipo">
+        <option>Hardware</option>
+        <option>Software</option>
+        <option>Datos</option>
+        <option>Personas</option>
+        <option>Procesos</option>
+        <option>Servicios</option>
+    </select>
+
+    <h4>Valoración CIA (1–4)</h4>
+    <input type="number" name="confidencialidad" min="1" max="4" required>
+    <input type="number" name="integridad" min="1" max="4" required>
+    <input type="number" name="disponibilidad" min="1" max="4" required>
+
+    <button type="submit">Guardar Activo</button>
+</form>
+
+<hr>
+
+<h3>Listado de Activos</h3>
+<ul>
+{% for activo in activos %}
+    <li>{{ activo.nombre }} – {{ activo.valoracion.clasificacion }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

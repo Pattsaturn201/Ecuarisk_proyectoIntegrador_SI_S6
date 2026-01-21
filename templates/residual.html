@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Riesgo Residual{% endblock %}
+
+{% block content %}
+<h2>Cálculo de Riesgo Residual</h2>
+
+<form method="POST">
+    <input name="riesgo_id" placeholder="ID del Riesgo" required>
+    <input type="number" name="impacto_residual" min="1" max="4" required>
+    <input type="number" name="probabilidad_residual" min="1" max="4" required>
+
+    <button type="submit">Calcular</button>
+</form>
+
+<hr>
+
+<h3>Resultados</h3>
+<ul>
+{% for r in residual %}
+    <li>Nivel: {{ r.nivel_residual }} – {{ r.clasificacion }}</li>
+{% endfor %}
+</ul>
+{% endblock %}
