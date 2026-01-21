@@ -1,0 +1,106 @@
+use EcutriskRPG
+
+
+db.createCollection("activos", {
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: ["nombre", "tipo", "valoracion"],
+        properties: {
+          nombre: {
+            bsonType: "string",
+            description: "Debe ser un texto"
+          },
+          tipo: {
+            enum: ["Hardware", "Software", "Datos", "Personas", "Procesos", "Servicios"]
+          },
+          estado: {
+            enum: ["Activo", "Inactivo"]
+          },
+          valoracion: {
+            bsonType: "object",
+            required: ["confidencialidad", "integridad", "disponibilidad"],
+            properties: {
+              confidencialidad: {
+                bsonType: "int",
+                minimum: 1,
+                maximum: 4
+              },
+              integridad: {
+                bsonType: "int",
+                minimum: 1,
+                maximum: 4
+              },
+              disponibilidad: {
+                bsonType: "int",
+                minimum: 1,
+                maximum: 4
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  
+
+  db.createCollection("riesgos", {
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: ["activo_id", "amenaza", "impacto", "probabilidad"],
+        properties: {
+          activo_id: {
+            bsonType: "objectId"
+          },
+          amenaza: {
+            bsonType: "string"
+          },
+          impacto: {
+            bsonType: "int",
+            minimum: 1,
+            maximum: 4
+          },
+          probabilidad: {
+            bsonType: "int",
+            minimum: 1,
+            maximum: 4
+          }
+        }
+      }
+    }
+  })
+
+  db.createCollection("tratamientos", {
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: ["riesgo_id", "estrategia"],
+        properties: {
+          riesgo_id: {
+            bsonType: "objectId"
+          },
+          estrategia: {
+            enum: ["Mitigar", "Transferir", "Aceptar", "Evitar"]
+          },
+          estado: {
+            enum: ["Pendiente", "Implementado"]
+          }
+        }
+      }
+    }
+  })
+
+  db.Createcolection("Residual")
+  db.Createcolection("Comunicacion")
+  
+  
+
+/*
+db.Createcolection("Activos")
+db.Createcolection("Riesgos")
+db.Createcolection("Residual")
+db.Createcolection("Comunicacion")
+*/
+
+
