@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid-2">
+    <div>
+        <h2 class="heading">Plan de Tratamiento</h2>
+        <form id="formTratamiento" class="card">
+            <div class="form-group">
+                <label>Riesgo (Seleccionar de lista)</label>
+                <select name="riesgo_id" id="selectRiesgo" required>
+                    <option value="">Cargando riesgos...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estrategia</label>
+                <select name="estrategia" required>
+                    <option value="Mitigar">Mitigar</option>
+                    <option value="Transferir">Transferir</option>
+                    <option value="Aceptar">Aceptar</option>
+                    <option value="Evitar">Evitar</option>
+                </select>
+            </div>
+
+            <h3 style="font-size:1.2rem; margin: 1rem 0; color:white;">Control ISO 27002</h3>
+            <div class="card" style="background: rgba(255,255,255,0.05); padding: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label>Código ISO</label>
+                    <input type="text" id="iso_code" placeholder="Ej: A.5.1">
+                </div>
+                <div class="form-group">
+                    <label>Descripción Control</label>
+                    <input type="text" id="iso_desc">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="iso_type">
+                        <option value="Tecnico">Técnico</option>
+                        <option value="Organizativo">Organizativo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Responsable</label>
+                    <input type="text" id="iso_resp">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Implementación</label>
+                    <input type="date" id="iso_date">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Guardar Tratamiento</button>
+        </form>
+    </div>
+
+    <div>
+        <h2 class="heading">Tratamientos Aplicados</h2>
+        <div class="table-container card">
+            <table id="tablaTratamientos">
+                <thead>
+                    <tr>
+                        <th>Riesgo</th>
+                        <th>Estrategia</th>
+                        <th>Control</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let editId = null;
+
+    document.getElementById('formTratamiento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        // Construir objeto complejo
+        const data = {
+            riesgo_id: formData.get('riesgo_id'),
+            estrategia: formData.get('estrategia'),
+            controles_propuestos: [{
+                codigo_iso: document.getElementById('iso_code').value,
+                descripcion: document.getElementById('iso_desc').value,
+                tipo: document.getElementById('iso_type').value,
+                responsable: document.getElementById('iso_resp').value,
+                fecha_implementacion: document.getElementById('iso_date').value,
+                estado: "Pendiente"
+            }]
+        };
+
+        const method = editId ? 'PUT' : 'POST';
+        const url = editId ? `/tratamientos/${editId}` : '/tratamientos';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            showAlert(editId ? 'Tratamiento actualizado' : 'Tratamiento asignado');
+            e.target.reset();
+            editId = null;
+            document.querySelector('button[type="submit"]').textContent = 'Guardar Tratamiento';
+            cargarTratamientos();
+        } else {
+            const err = await res.json();
+            showAlert(err.error || 'Error al guardar', 'error');
+        }
+    });
+
+    async function cargarRiesgosSelect() {
+        const res = await fetch('/riesgos');
+        const riesgos = await res.json();
+        const select = document.getElementById('selectRiesgo');
+        select.innerHTML = '<option value="">Seleccione Riesgo...</option>';
+
+        riesgos.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r._id;
+            opt.textContent = `${r.descripcion.substring(0, 40)}... (${r.clasificacion})`;
+            select.appendChild(opt);
+        });
+    }
+
+    async function cargarTratamientos() {
+        const res = await fetch('/tratamientos');
+        const lista = await res.json();
+        const tbody = document.querySelector('#tablaTratamientos tbody');
+        tbody.innerHTML = '';
+
+        lista.forEach(t => {
+            const c = t.controles_propuestos[0] || {};
+            const jsonData = JSON.stringify(t).replace(/'/g, "&#39;");
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td><small>${t.detalle_riesgo}</small></td>
+            <td><span class="badge">${t.estrategia}</span></td>
+            <td><b>${c.codigo_iso || '-'}</b>: ${c.descripcion || ''} <br> <small>${c.responsable || ''}</small></td>
+            <td>
+                <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick='editarTratamiento(${jsonData})'>✏️</button>
+                    <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick="eliminarTratamiento('${t._id}')">🗑️</button>
+            </td>
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function editarTratamiento(t) {
+        editId = t._id;
+        const form = document.getElementById('formTratamiento');
+        form.riesgo_id.value = t.riesgo_id;
+        form.estrategia.value = t.estrategia;
+
+        // Cargar primer control
+        if (t.controles_propuestos && t.controles_propuestos.length > 0) {
+            const c = t.controles_propuestos[0];
+            document.getElementById('iso_code').value = c.codigo_iso;
+            document.getElementById('iso_desc').value = c.descripcion;
+            document.getElementById('iso_type').value = c.tipo;
+            document.getElementById('iso_resp').value = c.responsable;
+            document.getElementById('iso_date').value = c.fecha_implementacion;
+        }
+
+        document.querySelector('button[type="submit"]').textContent = 'Actualizar Tratamiento';
+    }
+
+    async function eliminarTratamiento(id) {
+        if (!confirm('¿Eliminar tratamiento?')) return;
+        const res = await fetch(`/tratamientos/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showAlert('Eliminado');
+            cargarTratamientos();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarRiesgosSelect();
+        cargarTratamientos();
+    });
+</script>
+{% endblock %}

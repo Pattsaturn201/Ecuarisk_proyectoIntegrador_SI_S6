@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin-top: 4rem;">
+    <h1
+        style="font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(to right, #4f46e5, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Gestión Integral de Riesgos
+    </h1>
+    <p style="font-size: 1.25rem; color: #94a3b8; max-width: 600px; margin: 0 auto 3rem auto;">
+        Plataforma alineada a ISO 27002 para la identificación, tratamiento y monitoreo de riesgos de seguridad de la
+        información.
+    </p>
+
+    <div class="grid-2" style="max-width: 800px; margin: 0 auto; gap: 1.5rem;">
+        <a href="/view/activos" class="card"
+            style="text-decoration: none; color: inherit; transition: transform 0.2s; display: block;">
+            <h3 style="color: var(--primary);">1. Activos</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Inventario y valoración (CIA)</p>
+        </a>
+        <a href="/view/riesgos" class="card"
+            style="text-decoration: none; color: inherit; transition: transform 0.2s; display: block;">
+            <h3 style="color: var(--warning);">2. Riesgos</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Identificación y cálculo inherente</p>
+        </a>
+        <a href="/view/tratamientos" class="card"
+            style="text-decoration: none; color: inherit; transition: transform 0.2s; display: block;">
+            <h3 style="color: var(--success);">3. Tratamiento</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Controles y estrategias</p>
+        </a>
+        <a href="/view/residual" class="card"
+            style="text-decoration: none; color: inherit; transition: transform 0.2s; display: block;">
+            <h3 style="color: var(--secondary);">4. Residual</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Reevaluación y monitoreo</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

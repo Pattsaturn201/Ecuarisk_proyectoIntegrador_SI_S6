@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid-2">
+    <div>
+        <h2 class="heading">Nuevo Activo</h2>
+        <form id="formActivo" class="card">
+            <div class="form-group">
+                <label>Nombre del Activo</label>
+                <input type="text" name="nombre" required placeholder="Ej: Servidor DB">
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select name="tipo" required>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Software">Software</option>
+                    <option value="Datos">Datos</option>
+                    <option value="Personas">Personas</option>
+                    <option value="Procesos">Procesos</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Área / Responsable</label>
+                <input type="text" name="area" placeholder="Ej: TI" required>
+                <input type="text" name="responsable" placeholder="Responsable" required style="margin-top:0.5rem">
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea name="descripcion" rows="3"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Confidencialidad</label>
+                    <input type="number" name="confidencialidad" min="1" max="4" required value="1">
+                </div>
+                <div class="form-group">
+                    <label>Integridad</label>
+                    <input type="number" name="integridad" min="1" max="4" required value="1">
+                </div>
+                <div class="form-group">
+                    <label>Disponibilidad</label>
+                    <input type="number" name="disponibilidad" min="1" max="4" required value="1">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Registrar Activo</button>
+        </form>
+    </div>
+
+    <div>
+        <h2 class="heading">Inventario</h2>
+        <div class="table-container card">
+            <table id="tablaActivos">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Criterio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS population -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let editId = null;
+
+    document.getElementById('formActivo').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Validar numbers
+        ['confidencialidad', 'integridad', 'disponibilidad'].forEach(k => data[k] = parseInt(data[k]));
+
+        const method = editId ? 'PUT' : 'POST';
+        const url = editId ? `/activos/${editId}` : '/activos';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            showAlert(editId ? 'Activo actualizado' : 'Activo creado');
+            e.target.reset();
+            editId = null;
+            document.querySelector('button[type="submit"]').textContent = 'Registrar Activo';
+            cargarActivos();
+        } else {
+            const err = await res.json();
+            showAlert(err.error, 'error');
+        }
+    });
+
+    async function cargarActivos() {
+        try {
+            const res = await fetch('/activos');
+            if (!res.ok) return;
+            const activos = await res.json();
+            const tbody = document.querySelector('#tablaActivos tbody');
+            tbody.innerHTML = '';
+
+            activos.forEach(a => {
+                // Escapar comillas simples para JSON.stringify en el onclick
+                const jsonData = JSON.stringify(a).replace(/'/g, "&#39;");
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${a.nombre} <br><small style="color:var(--text-muted)">${a.area}</small></td>
+                    <td><span class="badge">${a.tipo}</span></td>
+                    <td>${a.valor_calculado}</td>
+                    <td><span class="badge badge-${a.clasificacion}">${a.clasificacion}</span></td>
+                    <td>
+                        <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick='editarActivo(${jsonData})'>✏️</button>
+                        <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick="eliminarActivo('${a._id}')">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error("Error cargando activos", e);
+        }
+    }
+
+    async function eliminarActivo(id) {
+        if (!confirm('¿Seguro que desea eliminar?')) return;
+        const res = await fetch(`/activos/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showAlert('Eliminado');
+            cargarActivos();
+        }
+    }
+
+    function editarActivo(activo) {
+        editId = activo._id;
+        const form = document.getElementById('formActivo');
+        form.nombre.value = activo.nombre;
+        form.tipo.value = activo.tipo;
+        form.area.value = activo.area;
+        form.responsable.value = activo.responsable;
+        form.descripcion.value = activo.descripcion;
+        form.confidencialidad.value = activo.valoracion.confidencialidad;
+        form.integridad.value = activo.valoracion.integridad;
+        form.disponibilidad.value = activo.valoracion.disponibilidad;
+
+        document.querySelector('button[type="submit"]').textContent = 'Actualizar Activo';
+        window.scrollTo(0, 0);
+    }
+
+    // Cargar al inicio
+    document.addEventListener('DOMContentLoaded', cargarActivos);
+</script>
+{% endblock %}

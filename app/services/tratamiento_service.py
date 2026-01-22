@@ -1,40 +1,98 @@
 from app import mongo
 from bson import ObjectId
-from datetime import datetime
-from app.utils.validaciones import validar_tratamiento
+
+def validar_tratamiento(data):
+    if "riesgo_id" not in data:
+        raise ValueError("Falta riesgo_id")
+    if "estrategia" not in data:
+        raise ValueError("Falta estrategia")
+    if data["estrategia"] not in ["Mitigar", "Transferir", "Aceptar", "Evitar"]:
+         raise ValueError("Estrategia inválida")
+    
+    if "controles_propuestos" not in data or not isinstance(data["controles_propuestos"], list):
+        raise ValueError("Faltan controles propuestos o formato inválido")
+
+    for control in data["controles_propuestos"]:
+        required_control_fields = ["codigo_iso", "descripcion", "tipo", "responsable", "fecha_implementacion", "estado"]
+        for field in required_control_fields:
+            if field not in control:
+                raise ValueError(f"Falta campo {field} en control")
 
 def crear_tratamiento(data):
-    errores = validar_tratamiento(data)
-    if errores:
-        return {"errores": errores}, 400
-
-    riesgo = mongo.db.riesgos.find_one({"_id": ObjectId(data["riesgo_id"])})
+    validar_tratamiento(data)
+    
+    try:
+        riesgo_id = ObjectId(data["riesgo_id"])
+    except:
+        raise ValueError("ID de riesgo inválido")
+        
+    riesgo = mongo.db.riesgos.find_one({"_id": riesgo_id})
     if not riesgo:
-        return {"error": "Riesgo no encontrado"}, 404
-
-    if riesgo["clasificacion"] not in ["Alto", "Crítico"]:
-        return {"error": "El riesgo no requiere tratamiento"}, 400
-
-    tratamiento = {
-        "riesgo_id": ObjectId(data["riesgo_id"]),
+        raise ValueError("Riesgo no encontrado")
+    
+    nuevo_tratamiento = {
+        "riesgo_id": riesgo_id,
         "estrategia": data["estrategia"],
-        "controles_propuestos": data.get("controles_propuestos", []),
-        "responsable": data["responsable"],
-        "estado": "Pendiente",
-        "fecha_inicio": datetime.now(),
-        "fecha_fin": data.get("fecha_fin"),
-        "observaciones": data.get("observaciones", "")
+        "controles_propuestos": data["controles_propuestos"]
     }
+    
+    resultado = mongo.db.tratamientos.insert_one(nuevo_tratamiento)
+    nuevo_tratamiento["_id"] = str(resultado.inserted_id)
+    nuevo_tratamiento["riesgo_id"] = str(nuevo_tratamiento["riesgo_id"])
+    
+    return nuevo_tratamiento
 
-    result = mongo.db.tratamientos.insert_one(tratamiento)
-    tratamiento["_id"] = str(result.inserted_id)
-    tratamiento["riesgo_id"] = str(tratamiento["riesgo_id"])
+def obtener_tratamientos():
+    cursor = mongo.db.tratamientos.find()
+    tratamientos = []
+    
+    # Cache riesgos para evitar N+1 queries
+    mapa_riesgos = {}
+    
+    for t in cursor:
+        t["_id"] = str(t["_id"])
+        r_id = str(t["riesgo_id"])
+        
+        if r_id not in mapa_riesgos:
+            riesgo = mongo.db.riesgos.find_one({"_id": t["riesgo_id"]})
+            if riesgo:
+                # Obtener nombre activo si es posible, o usar descripcion
+                activo_nombre = "Desconocido"
+                try:
+                    activo = mongo.db.activos.find_one({"_id": riesgo["activo_id"]})
+                    if activo:
+                        activo_nombre = activo["nombre"]
+                except:
+                    pass
+                mapa_riesgos[r_id] = f"{riesgo['descripcion'][:30]}... ({activo_nombre})"
+            else:
+                mapa_riesgos[r_id] = "Riesgo no encontrado"
+        
+        t["detalle_riesgo"] = mapa_riesgos[r_id]
+        t["riesgo_id"] = str(t["riesgo_id"])
+        tratamientos.append(t)
+        
+    return tratamientos
 
-    return tratamiento
+def actualizar_tratamiento(id, data):
+    validar_tratamiento(data)
+    
+    try:
+        riesgo_id = ObjectId(data["riesgo_id"])
+    except:
+        raise ValueError("ID de riesgo inválido")
 
-def actualizar_estado_tratamiento(tratamiento_id, estado):
-    mongo.db.tratamientos.update_one(
-        {"_id": ObjectId(tratamiento_id)},
-        {"$set": {"estado": estado}}
-    )
+    nuevo_tratamiento = {
+        "riesgo_id": riesgo_id,
+        "estrategia": data["estrategia"],
+        "controles_propuestos": data["controles_propuestos"]
+    }
+    
+    mongo.db.tratamientos.update_one({"_id": ObjectId(id)}, {"$set": nuevo_tratamiento})
+    nuevo_tratamiento["_id"] = id
+    nuevo_tratamiento["riesgo_id"] = str(riesgo_id)
+    return nuevo_tratamiento
 
+def eliminar_tratamiento(id):
+    mongo.db.tratamientos.delete_one({"_id": ObjectId(id)})
+    return {"mensaje": "Tratamiento eliminado"}

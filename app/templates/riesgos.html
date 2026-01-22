@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid-2">
+    <div>
+        <h2 class="heading">Identificar Riesgo</h2>
+        <form id="formRiesgo" class="card">
+            <div class="form-group">
+                <label>Activo</label>
+                <select name="activo_id" id="selectActivo" required>
+                    <option value="">Seleccione un activo...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tipo de Amenaza</label>
+                <select name="tipo_amenaza" required>
+                    <option value="Interna">Interna</option>
+                    <option value="Externa">Externa</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select name="categoria" required>
+                    <option value="Malware">Malware</option>
+                    <option value="Error Humano">Error Humano</option>
+                    <option value="Falla Técnica">Falla Técnica</option>
+                    <option value="Desastre">Desastre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descripción del Riesgo</label>
+                <textarea name="descripcion" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Controles Existentes</label>
+                <textarea name="controles_existentes" required placeholder="Ej: Firewall, Antivirus..."></textarea>
+            </div>
+
+            <div class="grid-2" style="gap:1rem">
+                <div class="form-group">
+                    <label>Probabilidad (1-4)</label>
+                    <input type="number" name="probabilidad" min="1" max="4" required>
+                </div>
+                <div class="form-group">
+                    <label>Impacto (1-4)</label>
+                    <input type="number" name="impacto" min="1" max="4" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Registrar Riesgo</button>
+        </form>
+    </div>
+
+    <div>
+        <h2 class="heading">Registro de Riesgos</h2>
+        <div class="table-container card">
+            <table id="tablaRiesgos">
+                <thead>
+                    <tr>
+                        <th>Activo</th>
+                        <th>Riesgo</th>
+                        <th>Nivel</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let editId = null;
+
+    document.getElementById('formRiesgo').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        data.probabilidad = parseInt(data.probabilidad);
+        data.impacto = parseInt(data.impacto);
+
+        const method = editId ? 'PUT' : 'POST';
+        const url = editId ? `/riesgos/${editId}` : '/riesgos';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            const json = await res.json();
+            showAlert(editId ? `Riesgo actualizado` : `Riesgo registrado. Nivel: ${json.nivel || json.riesgo_inherente}`);
+            e.target.reset();
+            editId = null;
+            document.querySelector('button[type="submit"]').textContent = 'Registrar Riesgo';
+            cargarRiesgos();
+        } else {
+            const err = await res.json();
+            showAlert(err.error, 'error');
+        }
+    });
+
+    async function cargarSelectActivos() {
+        const res = await fetch('/activos');
+        const activos = await res.json();
+        const select = document.getElementById('selectActivo');
+        // Mantener la primera opción
+        select.innerHTML = '<option value="">Seleccione un activo...</option>';
+        activos.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a._id;
+            opt.textContent = `${a.nombre} (${a.tipo})`;
+            select.appendChild(opt);
+        });
+    }
+
+    async function cargarRiesgos() {
+        const res = await fetch('/riesgos');
+        const riesgos = await res.json();
+        const tbody = document.querySelector('#tablaRiesgos tbody');
+        tbody.innerHTML = '';
+
+        riesgos.forEach(r => {
+            const jsonData = JSON.stringify(r).replace(/'/g, "&#39;");
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td>${r.nombre_activo || r.activo_id}</td>
+            <td>${r.descripcion} <br><small>${r.tipo_amenaza} - ${r.categoria}</small></td>
+            <td><span class="badge badge-${r.clasificacion.toUpperCase()}">${r.clasificacion}</span> (${r.riesgo_inherente})</td>
+            <td>
+                <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick='editarRiesgo(${jsonData})'>✏️</button>
+                    <button class="btn-sm" style="background:transparent; border:none; cursor:pointer;" onclick="eliminarRiesgo('${r._id}')">🗑️</button>
+            </td>
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function editarRiesgo(r) {
+        editId = r._id;
+        const form = document.getElementById('formRiesgo');
+        form.activo_id.value = r.activo_id;
+        form.tipo_amenaza.value = r.tipo_amenaza;
+        form.categoria.value = r.categoria;
+        form.descripcion.value = r.descripcion;
+        form.controles_existentes.value = r.controles_existentes;
+        form.probabilidad.value = r.probabilidad;
+        form.impacto.value = r.impacto;
+
+        document.querySelector('button[type="submit"]').textContent = 'Actualizar Riesgo';
+    }
+
+    async function eliminarRiesgo(id) {
+        if (!confirm('¿Eliminar riesgo?')) return;
+        const res = await fetch(`/riesgos/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showAlert('Eliminado');
+            cargarRiesgos();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarSelectActivos();
+        cargarRiesgos();
+    });
+</script>
+{% endblock %}

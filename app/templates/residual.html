@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid-2">
+    <div>
+        <h2 class="heading">Evaluar Riesgo Residual</h2>
+        <form id="formResidual" class="card">
+            <div class="form-group">
+                <label>Seleccionar Riesgo Tratado</label>
+                <select name="riesgo_id" id="selectRiesgo" required>
+                    <option value="">Cargando tratamientos...</option>
+                </select>
+            </div>
+
+            <p style="color:var(--text-muted); margin-bottom:1rem">Ingrese los nuevos valores post-tratamiento:</p>
+
+            <div class="grid-2" style="gap:1rem">
+                <div class="form-group">
+                    <label>Nueva Probabilidad</label>
+                    <input type="number" name="probabilidad_residual" min="1" max="4" required>
+                </div>
+                <div class="form-group">
+                    <label>Nuevo Impacto</label>
+                    <input type="number" name="impacto_residual" min="1" max="4" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Calcular Residual</button>
+        </form>
+    </div>
+
+    <div>
+        <h2 class="heading">Inventario Residual</h2>
+        <div class="table-container card">
+            <table id="tablaResidual">
+                <thead>
+                    <tr>
+                        <th>Riesgo</th>
+                        <th>Inherente</th>
+                        <th>Residual</th>
+                        <th>Reducción</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('formResidual').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        data.probabilidad_residual = parseInt(data.probabilidad_residual);
+        data.impacto_residual = parseInt(data.impacto_residual);
+
+        const res = await fetch('/Residual/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            const json = await res.json();
+            showAlert(`Cálculo completado: ${json.reduccion_porcentaje}% reducción`);
+            cargarResiduales();
+            e.target.reset();
+        } else {
+            const err = await res.json();
+            showAlert(err.error, 'error');
+        }
+    });
+
+    async function cargarTratamientosSelect() {
+        // Cargar tratamientos para saber qué riesgos ya se estan gestionando
+        const res = await fetch('/tratamientos');
+        const lista = await res.json();
+        const select = document.getElementById('selectRiesgo');
+        select.innerHTML = '<option value="">Seleccione un riesgo tratado...</option>';
+
+        lista.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.riesgo_id; // Usamos riesgo_id porque es lo que pide calcular_residual
+            opt.textContent = `${t.detalle_riesgo} - ${t.estrategia}`;
+            select.appendChild(opt);
+        });
+    }
+
+    async function cargarResiduales() {
+        const res = await fetch('/Residual');
+        const lista = await res.json();
+        const tbody = document.querySelector('#tablaResidual tbody');
+        tbody.innerHTML = '';
+
+        lista.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><small>${r.detalle_riesgo}</small></td>
+                <td><span class="badge badge-CRITICO">${r.riesgo_inherente}</span></td>
+                <td><span class="badge" style="background:var(--success)">${r.riesgo_residual}</span></td>
+                <td><b>${r.reduccion_porcentaje}%</b></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTratamientosSelect();
+        cargarResiduales();
+    });
+</script>
+{% endblock %}

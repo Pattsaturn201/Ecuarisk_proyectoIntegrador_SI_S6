@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="heading">Reporte Integral</h2>
+<div class="card">
+    <div style="margin-bottom:1rem; display:flex; gap:1rem;">
+        <button class="btn-primary" onclick="cargarReporte()">Generar Visualización</button>
+        <button class="btn-secondary" onclick="descargarReporteTxt()">Descargar TXT</button>
+    </div>
+    <div id="reporteContenido"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentReportData = null;
+
+    async function cargarReporte() {
+        const res = await fetch('/Comunicacion/reporte');
+        currentReportData = await res.json();
+        renderReporte(currentReportData);
+    }
+
+    function renderReporte(data) {
+        let html = '';
+        data.forEach(item => {
+            const a = item.activo;
+            // Parsear valoración si existe
+            const val = a.valoracion || { confidencialidad: '-', integridad: '-', disponibilidad: '-' };
+
+            html += `
+            <div style="border-bottom: 2px solid rgba(255,255,255,0.1); padding: 1.5rem 0; margin-bottom:1rem;">
+                <h3 style="color:var(--primary); font-size:1.4rem; margin-bottom:0.5rem;">${a.nombre}</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem; font-size:0.9rem; color:var(--text-muted);">
+                    <div>
+                        <p><strong>Tipo:</strong> ${a.tipo}</p>
+                        <p><strong>Área:</strong> ${a.area}</p>
+                        <p><strong>Responsable:</strong> ${a.responsable}</p>
+                    </div>
+                    <div>
+                        <p><strong>Valoración (C-I-D):</strong> ${val.confidencialidad} - ${val.integridad} - ${val.disponibilidad}</p>
+                        <p><strong>Valor Calculado:</strong> ${a.valor_calculado}</p>
+                        <p><strong>Clasificación:</strong> ${a.clasificacion}</p>
+                    </div>
+                </div>
+                <p style="font-style:italic; margin-bottom:1rem;">"${a.descripcion}"</p>
+                
+                <div style="padding-left: 1rem; border-left: 2px solid var(--secondary);">
+        `;
+
+            item.riesgos.forEach(r => {
+                const ri = r.detalle;
+                const tr = r.tratamientos[0] || null;
+                const res = r.residual[0] || null;
+                const controlProp = tr ? (tr.controles_propuestos[0] || {}) : {};
+
+                html += `
+                <div style="background:rgba(255,255,255,0.03); padding:1rem; margin-top:1rem; border-radius:8px;">
+                    <h4 style="color:var(--warning); margin-bottom:0.5rem;">⚠ Riesgo: ${ri.descripcion}</h4>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; font-size:0.9rem; margin-bottom:0.5rem;">
+                        <p><strong>Amenaza:</strong> ${ri.tipo_amenaza} (${ri.categoria})</p>
+                        <p><strong>Nivel Inherente:</strong> ${ri.clasificacion} (P:${ri.probabilidad} x I:${ri.impacto} = ${ri.riesgo_inherente})</p>
+                    </div>
+                    <p style="font-size:0.9rem;"><strong>Controles Existentes:</strong> ${ri.controles_existentes}</p>
+                    
+                    ${tr ? `
+                    <div style="margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid rgba(255,255,255,0.1);">
+                        <p style="color:var(--secondary);"><strong>🛡 Tratamiento (${tr.estrategia}):</strong></p>
+                        <ul style="font-size:0.9rem; margin-left:1.5rem; margin-top:0.3rem;">
+                            <li><strong>Control ISO:</strong> ${controlProp.codigo_iso || 'N/A'} - ${controlProp.descripcion || ''}</li>
+                            <li><strong>Tipo:</strong> ${controlProp.tipo || '-'} | <strong>Responsable:</strong> ${controlProp.responsable || '-'}</li>
+                            <li><strong>Fecha:</strong> ${controlProp.fecha_implementacion || '-'}</li>
+                        </ul>
+                    </div>
+                    ` : '<p style="color:red; margin-top:0.5rem;">No tratado</p>'}
+
+                    ${res ? `
+                    <div style="margin-top:0.5rem; font-size:0.9rem;">
+                        <span style="color:var(--success);">✔ Riesgo Residual:</span> 
+                        <span class="badge" style="background:var(--success)">${res.riesgo_residual}</span>
+                        (Reducción: <b>${res.reduccion_porcentaje}%</b>)
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            });
+
+            if (item.riesgos.length === 0) html += '<p style="color:var(--text-muted)">Sin riesgos identificados.</p>';
+
+            html += `</div></div>`;
+        });
+
+        document.getElementById('reporteContenido').innerHTML = html;
+    }
+
+    async function descargarReporteTxt() {
+        if (!currentReportData) {
+            const res = await fetch('/Comunicacion/reporte');
+            currentReportData = await res.json();
+        }
+
+        let text = "REPORTE INTEGRAL DE GESTIÓN DE RIESGOS - ECUARISK\n";
+        text += "Fecha Generación: " + new Date().toLocaleString() + "\n";
+        text += "=================================================\n\n";
+
+        currentReportData.forEach((item, idx) => {
+            const a = item.activo;
+            const val = a.valoracion || {};
+
+            text += `[ACTIVO #${idx + 1}] ${a.nombre.toUpperCase()}\n`;
+            text += `  > Área: ${a.area} | Responsable: ${a.responsable}\n`;
+            text += `  > Tipo: ${a.tipo}\n`;
+            text += `  > Descripción: ${a.descripcion}\n`;
+            text += `  > Valoración: Conf(${val.confidencialidad}) - Int(${val.integridad}) - Disp(${val.disponibilidad})\n`;
+            text += `  > Valor Calculado: ${a.valor_calculado} | Clasificación: ${a.clasificacion}\n`;
+            text += `  -------------------------------------------------\n`;
+
+            if (item.riesgos.length === 0) {
+                text += "  (Sin riesgos registrados)\n\n";
+            } else {
+                item.riesgos.forEach((r, rIdx) => {
+                    const ri = r.detalle;
+                    const tr = r.tratamientos[0];
+                    const res = r.residual[0];
+                    const control = tr ? (tr.controles_propuestos[0] || {}) : {};
+
+                    text += `  (Riesgo ${rIdx + 1}) ${ri.descripcion}\n`;
+                    text += `    - Amenaza: ${ri.tipo_amenaza} / ${ri.categoria}\n`;
+                    text += `    - Controles Existentes: ${ri.controles_existentes}\n`;
+                    text += `    - Inherente: P(${ri.probabilidad}) x I(${ri.impacto}) = ${ri.riesgo_inherente} [${ri.clasificacion}]\n`;
+
+                    if (tr) {
+                        text += `    - [TRATAMIENTO] Estrategia: ${tr.estrategia}\n`;
+                        text += `       * Control ISO: ${control.codigo_iso || 'N/A'}\n`;
+                        text += `       * Descripción: ${control.descripcion || ''}\n`;
+                        text += `       * Responsable: ${control.responsable || ''}\n`;
+                    } else {
+                        text += `    - [TRATAMIENTO] No definido\n`;
+                    }
+
+                    if (res) {
+                        text += `    - [RESIDUAL] P(${res.probabilidad_residual}) x I(${res.impacto_residual}) = ${res.riesgo_residual}\n`;
+                        text += `       * Reducción: ${res.reduccion_porcentaje}%\n`;
+                    }
+                    text += "\n";
+                });
+            }
+            text += "=================================================\n\n";
+        });
+
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ecuarisk_Reporte_${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+    }
+</script>
+{% endblock %}

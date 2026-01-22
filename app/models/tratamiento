@@ -1,0 +1,9 @@
+def validar_tratamiento(data):
+    campos = ["riesgo_id", "estrategia", "responsable"]
+
+    for campo in campos:
+        if campo not in data:
+            raise ValueError(f"Falta el campo {campo}")
+
+    if data["estrategia"] not in ["Mitigar", "Aceptar", "Transferir", "Evitar"]:
+        raise ValueError("Estrategia no válida")

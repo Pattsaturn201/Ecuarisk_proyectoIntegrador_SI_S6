@@ -1,63 +1,102 @@
 from app import mongo
-from datetime import datetime
 from bson import ObjectId
-from app.utils.validaciones import validar_activo
 
-def calcular_clasificacion(valor):
+def validar_activo(data):
+    campos_obligatorios = [
+        "nombre", "tipo", "area", "responsable", "descripcion",
+        "confidencialidad", "integridad", "disponibilidad"
+    ]
+
+    for campo in campos_obligatorios:
+        if campo not in data:
+            raise ValueError(f"Falta el campo obligatorio: {campo}")
+
+    for campo in ["confidencialidad", "integridad", "disponibilidad"]:
+        valor = data.get(campo)
+        if not str(valor).isdigit() or not (1 <= int(valor) <= 4):
+            raise ValueError(f"{campo} debe estar entre 1 y 4")
+
+def calcular_valor_activo(conf, integ, disp):
+    return round((conf + integ + disp) / 3, 2)
+
+def clasificar_activo(valor):
     if valor >= 3.5:
         return "Crítico"
     elif valor >= 2.5:
         return "Alto"
     elif valor >= 1.5:
         return "Medio"
-    return "Bajo"
+    else:
+        return "Bajo"
 
+def crear_activo(data):
+    validar_activo(data)
 
-def create_activo(data):
-    # 1️⃣ Validación
-    errores = validar_activo(data)
-    if errores:
-        return {"errores": errores}, 400
+    conf = int(data["confidencialidad"])
+    integ = int(data["integridad"])
+    disp = int(data["disponibilidad"])
 
-    # 2️⃣ Evitar duplicados
-    if mongo.db.activos.find_one({"nombre": data["nombre"]}):
-        return {"error": "Ya existe un activo con ese nombre"}, 409
+    valor = calcular_valor_activo(conf, integ, disp)
+    clasificacion = clasificar_activo(valor)
 
-    # 3️⃣ Cálculo CIA
-    c = data["confidencialidad"]
-    i = data["integridad"]
-    d = data["disponibilidad"]
-    valor = round((c + i + d) / 3, 2)
-
-    clasificacion = calcular_clasificacion(valor)
-
-    # 4️⃣ Construcción del documento
-    activo = {
+    nuevo_activo = {
         "nombre": data["nombre"],
         "tipo": data["tipo"],
-        "descripcion": data.get("descripcion"),
-        "area": data.get("area"),
-        "propietario": data.get("propietario"),
-        "ubicacion": data.get("ubicacion"),
-        "estado": data.get("estado", "Activo"),
-        "fecha_creacion": datetime.now(),
+        "area": data["area"],
+        "responsable": data["responsable"],
+        "descripcion": data["descripcion"],
         "valoracion": {
-            "confidencialidad": c,
-            "integridad": i,
-            "disponibilidad": d,
-            "valor": valor,
-            "clasificacion": clasificacion
+            "confidencialidad": conf,
+            "integridad": integ,
+            "disponibilidad": disp
         },
-        "datos_personales": {
-            "procesa": data.get("datos_personales", {}).get("procesa", False),
-            "sensibles": data.get("datos_personales", {}).get("sensibles", False),
-            "volumen": data.get("datos_personales", {}).get("volumen", "Bajo")
-        }
+        "valor_calculado": valor,
+        "clasificacion": clasificacion
     }
 
-    # 5️⃣ Guardar en MongoDB
-    result = mongo.db.activos.insert_one(activo)
+    resultado = mongo.db.activos.insert_one(nuevo_activo)
+    nuevo_activo["_id"] = str(resultado.inserted_id)
+    
+    return nuevo_activo
 
-    # 6️⃣ Respuesta limpia
-    activo["_id"] = str(result.inserted_id)
-    return activo
+def obtener_activos():
+    activos_cursor = mongo.db.activos.find()
+    activos = []
+    for activo in activos_cursor:
+        activo["_id"] = str(activo["_id"])
+        activos.append(activo)
+    return activos
+
+def actualizar_activo(id, data):
+    validar_activo(data)
+    
+    # Recalcular valores
+    conf = int(data["confidencialidad"])
+    integ = int(data["integridad"])
+    disp = int(data["disponibilidad"])
+    valor = calcular_valor_activo(conf, integ, disp)
+    clasificacion = clasificar_activo(valor)
+    
+    update_data = {
+        "nombre": data["nombre"],
+        "tipo": data["tipo"],
+        "area": data["area"],
+        "responsable": data["responsable"],
+        "descripcion": data["descripcion"],
+        "valoracion": {
+            "confidencialidad": conf,
+            "integridad": integ,
+            "disponibilidad": disp
+        },
+        "valor_calculado": valor,
+        "clasificacion": clasificacion
+    }
+    
+    mongo.db.activos.update_one({"_id": ObjectId(id)}, {"$set": update_data})
+    update_data["_id"] = id
+    return update_data
+
+def eliminar_activo(id):
+    mongo.db.activos.delete_one({"_id": ObjectId(id)})
+    return {"mensaje": "Activo eliminado"}
+
