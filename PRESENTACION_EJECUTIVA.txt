@@ -1,0 +1,64 @@
+ESTRUCTURA DE PRESENTACIÓN EJECUTIVA - ECUARISK
+Tiempo Estimado: 10 Minutos
+
+================================================================================
+DIAPOSITIVA 1: PORTADA (1 Minuto)
+================================================================================
+* TÍTULO: Sistema de Gestión de Riesgos de Seguridad de la Información (Ecuarisk)
+* SUBTÍTULO: Proyecto Integrador de Seguridad de la Información
+* INTEGRANTES: [Nombres de los integrantes del grupo]
+* DOCENTE: [Nombre del docente]
+* OBJETIVO: Presentar una solución tecnológica para la gestión proactiva de riesgos cibernéticos.
+
+================================================================================
+DIAPOSITIVA 2: INTRODUCCIÓN Y PROBLEMÁTICA (1 Minuto)
+================================================================================
+* CONTEXTO: Las organizaciones enfrentan amenazas crecientes (Ransomware, Fugas de datos).
+* EL PROBLEMA: 
+    - Gestión manual en Excel propensa a errores.
+    - Falta de seguimiento centralizado.
+    - Dificultad para visualizar el riesgo real.
+* LA SOLUCIÓN: Una aplicación web centralizada, basada en normativas ISO 27000.
+
+================================================================================
+DIAPOSITIVA 3: METODOLOGÍA DE GESTIÓN DE RIESGOS (2 Minutos)
+================================================================================
+* EXPLICAR EL CICLO PHVA (Planificar-Hacer-Verificar-Actuar) aplicado:
+    1. ACTIVO: Identificación y valoración (Confidencialidad, Integridad, Disponibilidad).
+    2. RIESGO INHERENTE: Cálculo de Probabilidad x Impacto. Clasificación en niveles (Bajo, Medio, Alto, Crítico).
+    3. TRATAMIENTO: Selección de controles ISO 27002 (Mitigar, Transferir, Aceptar, Evitar).
+    4. RIESGO RESIDUAL: Re-evaluación post-tratamiento para medir la reducción.
+
+================================================================================
+DIAPOSITIVA 4: FLUJO DE TRABAJO DE LA HERRAMIENTA (2 Minutos)
+================================================================================
+* DIAGRAMA VISUAL DEL FLUJO (Mostrar esquema simple):
+    [Registro Activo] --> [Identificar Amenaza] --> [Evaluar Riesgo] --> [Aplicar Control] --> [Generar Reporte]
+* DESTACAR:
+    - La interconexión automática entre módulos (No es necesario copiar/pegar IDs).
+    - La validación de datos en tiempo real (evita duplicados).
+
+================================================================================
+DIAPOSITIVA 5: DEMOSTRACIÓN DE FUNCIONALIDADES (3 Minutos)
+================================================================================
+* (Mostrar capturas o video corto de la herramienta funcionando)
+* PUNTOS CLAVE A RESALTAR:
+    - INVENTARIO: Valoración automática del activo.
+    - RIESGOS: Matriz de calor y clasificación automática (ej. mostrar alerta de riesgo CRÍTICO).
+    - TRATAMIENTOS: Catálogo de estrategias y asignación de responsables.
+    - REPORTES: Generación del informe integral y descarga en TXT para evidencia.
+
+================================================================================
+DIAPOSITIVA 6: CONCLUSIONES Y BENEFICIOS (1 Minuto)
+================================================================================
+* BENEFICIOS LOGRADOS:
+    - ✅ Trazabilidad completa de la seguridad.
+    - ✅ Ahorro de tiempo en cálculos manuales.
+    - ✅ Mejor toma de decisiones basada en datos reales.
+    - ✅ Interfaz amigable que facilita el uso.
+* CIERRE: "Ecuarisk transforma la gestión de seguridad de una tarea operativa a una estratégica."
+
+================================================================================
+DIAPOSITIVA 7: PREGUNTAS (Final)
+================================================================================
+* Espacio para preguntas del docente y compañeros.
